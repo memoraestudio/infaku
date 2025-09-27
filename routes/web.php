@@ -34,18 +34,9 @@ Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware(['role:adm-01'])->group(function () {
     Route::get('/admin/dashboard', [WilayahController::class, 'dashboard'])->name('admin.dashboard');
+    // master
     Route::get('/admin/master/wilayah', [WilayahController::class, 'masterWilayah'])->name('admin.master.wilayah');
-    Route::get('/admin/master/supplier', [WilayahController::class, 'masterSupplier'])->name('admin.master.supplier');
-    Route::get('/admin/master/depo', [WilayahController::class, 'masterDepo'])->name('admin.master.depo');
-    Route::get('/admin/master/principle', [WilayahController::class, 'masterPrinciple'])->name('admin.master.principle');
-    Route::get('/admin/targetbysales', [WilayahController::class, 'targetBySales'])->name('admin.targetbysales');
-    Route::get('/admin/historymovement', [WilayahController::class, 'historyMovement'])->name('admin.historymovement');
-    Route::get('/admin/servicelevel', [WilayahController::class, 'serviceLevel'])->name('admin.servicelevel');
-    Route::get('/admin/leadtime', [WilayahController::class, 'leadTime'])->name('admin.leadtime');
-    Route::get('/admin/expenses', [WilayahController::class, 'expenses']);
-    Route::post('/admin/expenses', [WilayahController::class, 'storeExpense']);
-    Route::post('/admin/expenses', [AdminController::class, 'storeExpense']);
-    // master data
+   
 });
 
 Route::middleware(['role:cashier'])->group(function () {

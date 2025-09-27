@@ -10,9 +10,14 @@ use Illuminate\Support\Facades\Session;
 
 class WilayahController extends Controller
 {
-    public function masterWilayah()
+    public function dashboard()
     {
         return view('admin.dashboard');
+    }
+    
+    public function masterWilayah()
+    {
+        return view('admin.master.wilayah');
     }
 
     
