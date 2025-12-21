@@ -64,7 +64,7 @@ class JamaahController extends Controller
 
             $query = DB::table('jamaah')
                 ->leftJoin('keluarga', 'jamaah.jamaah_id', '=', 'keluarga.kepala_keluarga_id')
-                ->leftJoin('master_dapuan', 'jamaah.dapuan_id', '=', 'master_dapuan.id')
+                ->Join('master_dapuan', 'jamaah.dapuan_id', '=', 'master_dapuan.id')
                 ->where('jamaah.kelompok_id', $kelompokId);
 
             if (!empty($search)) {
@@ -86,7 +86,6 @@ class JamaahController extends Controller
                 'jamaah.*',
                 'keluarga.nama_keluarga',
                 'master_dapuan.nama_dapuan',
-                'dapuan.nama_dapuan'
             )
                 ->orderBy('jamaah.nama_lengkap', 'asc')
                 ->offset(($page - 1) * $perPage)
@@ -104,7 +103,7 @@ class JamaahController extends Controller
             Log::error('Error getting jamaah data: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat data jamaah'
+                'message' => '  '
             ], 500);
         }
     }
@@ -157,17 +156,22 @@ class JamaahController extends Controller
 
     public function show($id)
     {
+        // dd($id);
         try {
             $jamaah = DB::table('jamaah')
-                ->leftjoin('keluarga', 'jamaah.jamaah_id', '=', 'keluarga.kepala_keluarga_id')
+                ->leftjoin('keluarga', 'jamaah.id', '=', 'keluarga.kepala_keluarga_id')
                 ->join('master_dapuan', 'jamaah.dapuan_id', '=', 'master_dapuan.id')
                 ->where('jamaah.jamaah_id', $id)
+                ->join('users', 'jamaah.id', '=', 'users.jamaah_id')
                 ->select(
                     'jamaah.*',
+                    // 'users.email',
                     'keluarga.nama_keluarga',
-                    'master_dapuan.nama_dapuan'
+                    'master_dapuan.nama_dapuan',
+                    'master_dapuan.id as dapuan_id'
                 )
                 ->first();
+            dd($jamaah);
 
             if (!$jamaah) {
                 return response()->json([
@@ -176,9 +180,41 @@ class JamaahController extends Controller
                 ], 404);
             }
 
+            // Format tanggal_lahir agar selalu yyyy-MM-dd atau null
+            $tanggal_lahir = ($jamaah->tanggal_lahir && $jamaah->tanggal_lahir !== '0000-01-01')
+                ? date('Y-m-d', strtotime($jamaah->tanggal_lahir))
+                : null;
+
+            // Pastikan dapuan_id string
+            $dapuan_id = isset($jamaah->dapuan_id) ? (string)$jamaah->dapuan_id : null;
+
+            $data = [
+                'id' => $jamaah->id,
+                'jamaah_id' => $jamaah->jamaah_id,
+                'nik' => $jamaah->nik,
+                'nama_lengkap' => $jamaah->nama_lengkap,
+                'tempat_lahir' => $jamaah->tempat_lahir,
+                'tanggal_lahir' => $tanggal_lahir,
+                'jenis_kelamin' => $jamaah->jenis_kelamin,
+                'alamat' => $jamaah->alamat,
+                'telepon' => $jamaah->telepon,
+                'email' => $jamaah->email,
+                'pekerjaan' => $jamaah->pekerjaan,
+                'status_menikah' => $jamaah->status_menikah,
+                'golongan_darah' => $jamaah->golongan_darah,
+                'dapuan_id' => $dapuan_id,
+                'nama_dapuan' => $jamaah->nama_dapuan,
+                'nama_keluarga' => $jamaah->nama_keluarga,
+                'is_aktif' => $jamaah->is_aktif,
+                'created_at' => $jamaah->created_at,
+                'updated_at' => $jamaah->updated_at,
+                'kelompok_id' => $jamaah->kelompok_id,
+                'foto_profil' => $jamaah->foto_profil,
+            ];
+
             return response()->json([
                 'success' => true,
-                'data' => $jamaah
+                'data' => $data
             ]);
         } catch (\Exception $e) {
             Log::error('Error showing jamaah: ' . $e->getMessage());

@@ -732,9 +732,11 @@
 
             dapuanOptions.forEach(dapuan => {
                 const option = document.createElement('option');
-                option.value = dapuan.dapuan_id;
+                option.value = String(dapuan.dapuan_id);
                 option.textContent = `${dapuan.nama_dapuan} `;
-                option.selected = dapuan.dapuan_id === selectedId;
+                if (selectedId !== '' && String(dapuan.dapuan_id) === String(selectedId)) {
+                    option.selected = true;
+                }
                 dropdown.appendChild(option);
             });
         }
@@ -849,17 +851,50 @@
                     // Fill form fields
                     document.getElementById('nama_lengkap').value = item.nama_lengkap;
                     document.getElementById('tempat_lahir').value = item.tempat_lahir || '';
-                    document.getElementById('tanggal_lahir').value = item.tanggal_lahir || '';
+
+                    // Tanggal lahir: format ke yyyy-MM-dd jika valid
+                    if (item.tanggal_lahir && item.tanggal_lahir !== '0000-01-01') {
+                        // Format ke yyyy-MM-dd jika perlu
+                        let tgl = item.tanggal_lahir;
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(tgl)) {
+                            document.getElementById('tanggal_lahir').value = tgl;
+                        } else {
+                            // Jika format lain, coba parse
+                            const d = new Date(tgl);
+                            if (!isNaN(d.getTime())) {
+                                const yyyy = d.getFullYear();
+                                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                const dd = String(d.getDate()).padStart(2, '0');
+                                document.getElementById('tanggal_lahir').value = `${yyyy}-${mm}-${dd}`;
+                            } else {
+                                document.getElementById('tanggal_lahir').value = '';
+                            }
+                        }
+                    } else {
+                        document.getElementById('tanggal_lahir').value = '';
+                    }
+
                     document.getElementById('jenis_kelamin').value = item.jenis_kelamin;
                     document.getElementById('golongan_darah').value = item.golongan_darah || '-';
-                    document.getElementById('status_menikah').value = item.status_menikah;
+
+                    // Status menikah: normalisasi ke uppercase agar cocok dengan value option
+                    let statusMenikah = item.status_menikah;
+                    if (statusMenikah) {
+                        statusMenikah = statusMenikah.toUpperCase().replace(/\s/g, '_');
+                    }
+                    document.getElementById('status_menikah').value = statusMenikah || '';
+
                     document.getElementById('pekerjaan').value = item.pekerjaan || '';
                     document.getElementById('telepon').value = item.telepon || '';
                     document.getElementById('email').value = item.email || '';
                     document.getElementById('alamat').value = item.alamat || '';
                     document.getElementById('is_aktif').value = item.is_aktif ? '1' : '0';
 
-                    updateDapuanDropdown(item.dapuan_id);
+                    // Dapuan: pastikan value string/number cocok, dan tunggu options sudah dimuat
+                    if (dapuanOptions.length === 0) {
+                        await loadDapuanOptions();
+                    }
+                    updateDapuanDropdown(item.dapuan_id != null ? String(item.dapuan_id) : '');
 
                     document.getElementById('formModal').classList.add('show');
                 } else {
