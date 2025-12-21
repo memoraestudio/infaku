@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi - @yield('title')</title>
     <link rel="stylesheet" href="https://egifn.github.io/got-style/icon.css" />
-    <link rel="stylesheet" href="{{  }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     @stack('style')
     <style>
         * {
@@ -16,7 +18,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Inter', sans-serif !important;
             font-weight: 400;
             line-height: 1.6;
             color: #333;
@@ -55,7 +57,7 @@
 
         .header-logo img {
             height: 40px;
-            margin-left: 6px;
+            ` margin-left: 6px;
         }
 
         .search {
@@ -114,9 +116,6 @@
             height: 20px;
         }
 
-        /* .profile-img-wrapper:hover {
-
-      } */
 
         .icon {
             margin-right: 10px;
@@ -163,6 +162,7 @@
             top: 40px;
             z-index: 1;
             overflow-y: auto;
+            overflow: visible !important;
         }
 
         .sidebar-logo {
@@ -183,6 +183,7 @@
 
         .sidebar.collapsed {
             width: 50px;
+            overflow: visible;
         }
 
         .sidebar-header {
@@ -211,8 +212,9 @@
         .sidebar-toggle-btn {
             border: none;
             cursor: pointer;
-            color: #3a92eb;
+            color: #000000;
             width: 15px;
+            margin-top: 3px;
         }
 
         .sidebar-toggle-btn:hover {
@@ -265,13 +267,14 @@
             border-radius: 3px;
             align-items: center;
             gap: 10px;
+            position: relative;
         }
 
         .menu-item i {
             flex-shrink: 0;
             width: 15px;
-            height: 15px;
-            margin: 3px;
+            /* height: 15px; */
+            margin: 0px 3px;
         }
 
         .menu-item:hover {
@@ -294,6 +297,25 @@
 
         .collapsed .menu-text {
             display: none;
+        }
+
+        /* Tooltip for menu-item when collapsed */
+        .collapsed .menu-item:hover::after {
+            content: attr(title);
+            position: absolute;
+            left: 45px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #333;
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 10;
+            opacity: 0.95;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            pointer-events: none;
         }
 
         .submenu {
@@ -708,7 +730,7 @@
         }
 
         .status-change {
-            font-size: 0.9rem;
+            font-size: 12px;
         }
 
         .positive {
@@ -1062,6 +1084,35 @@
             cursor: pointer;
             width: 100%;
         }
+
+        .menu-header {
+            margin-top: 20px;
+            margin-bottom: 8px;
+            padding-left: 15px;
+            font-size: 10px;
+            color: #999;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+
+        .collapsed .menu-header {
+            padding-left: 0;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            color: #999;
+            text-transform: uppercase;
+            width: 100%;
+            text-align: center;
+            letter-spacing: 1px;
+            overflow: hidden;
+        }
+
+        /* conten */
+        .empty-state h4,
+        p {
+            font-size: 13px;
+        }
     </style>
 </head>
 
@@ -1070,7 +1121,7 @@
         <header class="header">
             <div class="header-brand">
                 <div class="header-logo">
-                    <span class="header-logo-frame">M</span>
+                    <span class="header-logo-frame">I</span>
                 </div>
             </div>
             <div class="search">
@@ -1083,9 +1134,17 @@
                         <div class="dropdown hover-dropdown">
                             <img src="/img/example.png" width="20" />
                             <div class="dropdown-content">
-                                <a href="#"><i class="eg-user"></i>Profil</a>
-                                <a href="#"><i class="eg-setting"></i>Setting</a>
-                                <a href="#"><i class="eg-sign-out"></i>Logout</a>
+                                <a href="#"><i class="bi bi-person"></i>Profil</a>
+                                <a href="#"><i class="bi bi-gear"></i>Setting</a>
+                                <a href="#"
+                                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                    <i class="bi bi-box-arrow-right"></i>Logout
+                                </a>
+
+                                <form id="logout-form" action="{{ route('logout') }}" method="POST"
+                                    style="display: none;">
+                                    @csrf
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -1094,36 +1153,92 @@
         </header>
         <div class="sidebar">
             <div class="sidebar-header">
-                <span class="sidebar-logo">M</span>
-                <p style="color: #5b5656;margin-top: -5px;margin-left: 5px;font-size: 20px;"><b>MULTI</b></p>
+                <span class="sidebar-logo">I</span>
+                <p style="color: #5b5656;margin-top: -5px;margin-left: 5px;font-size: 20px;"><b>Infaqu</b></p>
                 <div class="sidebar-toggle">
-                    <i class="eg-apps sidebar-toggle-btn" id="toggleSidebar"></i>
+                    <i class="bi bi-grid sidebar-toggle-btn" id="toggleSidebar"></i>
                 </div>
             </div>
+
             <div class="sidebar-menu">
-                {{-- <div class="menu-item">
-            <i class="eg-home"></i><span class="menu-text">Home</span>
-            </div> --}}
-                <a href="{{ route('admin.dashboard') }}"
-                    class="menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                    <i class="eg-chart"></i><span class="menu-text">Dashboards</span>
+
+                <!-- Dashboard -->
+                <a href="{{ route('admin.kelompok.dashboard') }}"
+                    class="menu-item {{ request()->routeIs('admin.kelompok.dashboard') ? 'active' : '' }}"
+                    data-name="Dashboards" title="Dashboards">
+                    <i class="bi bi-bar-chart"></i><span class="menu-text">Dashboards</span>
                 </a>
-                <div class="menu-item has-submenu" data-submenu="achievment">
-                    <i class="eg-document"></i><span class="menu-text">Master</span><span
-                        class="dropdown-toggle">▶</span>
+
+                <!-- Header Menu -->
+                <div class="menu-header">
+                    <span class="full-text">MASTER JAMAAH</span>
+                    <span class="short-text" style="display:none;">MJ</span>
                 </div>
-                <div id="achievment" class="submenu">
-                    <a href="{{ route('admin.master.wilayah') }}"
-                        class="menu-item {{ request()->routeIs('admin.master.wilayah') ? 'active' : '' }}">
-                        <span class="menu-text">Wilayah</span>
-                    </a>
+
+                <a href="{{ route('admin.kelompok.data-jamaah.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.kelompok.data-jamaah.*') ? 'active' : '' }}"
+                    data-name="Data Jamaah" title="Data Jamaah">
+                    <i class="bi bi-file-earmark-text"></i><span class="menu-text">Data Jamaah</span>
+                </a>
+
+                <a href="{{ route('admin.kelompok.data-keluarga.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.kelompok.data-keluarga.*') ? 'active' : '' }}"
+                    data-name="Data Keluarga" title="Data Keluarga">
+                    <i class="bi bi-file-earmark-text"></i><span class="menu-text">Data Keluarga</span>
+                </a>
+
+                <!-- Header Menu -->
+                <div class="menu-header">
+                    <span class="full-text">MASTER KONTRIBUSI</span>
+                    <span class="short-text" style="display:none;">MK</span>
                 </div>
+
+                <a href="{{ route('admin.kelompok.master-kontribusi.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.kelompok.master-kontribusi.*') ? 'active' : '' }}"
+                    data-name="Data Kontribusi" title="Data Kontribusi">
+                    <i class="bi bi-file-earmark-text"></i><span class="menu-text">Data Kontribusi</span>
+                </a>
+
+                <a href="{{ route('admin.kelompok.sub-kontribusi.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.kelompok.sub-kontribusi.*') ? 'active' : '' }}"
+                    data-name="Data Sub Kontribusi" title="Data Sub Kontribusi">
+                    <i class="bi bi-file-earmark-text"></i><span class="menu-text">Data Sub Kontribusi</span>
+                </a>
+
+                <!-- Header Menu -->
+                <div class="menu-header">
+                    <span class="full-text">TRANSAKSI</span>
+                    <span class="short-text" style="display:none;">TR</span>
+                </div>
+
+                <a href="{{ route('admin.kelompok.input-pembayaran.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.kelompok.input-pembayaran.*') ? 'active' : '' }}"
+                    data-name="Transaksi" title="Transaksi">
+                    <i class="bi bi-wallet"></i><span class="menu-text">Transaksi</span>
+                </a>
+                <a href="{{ route('admin.kelompok.riwayat-transaksi.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.kelompok.riwayat-transaksi.*') ? 'active' : '' }}"
+                    data-name="Transaksi" title="Transaksi">
+                    <i class="bi bi-wallet"></i><span class="menu-text">Riwayat Transaksi</span>
+                </a>
+
+                <div class="menu-header">
+                    <span class="full-text">LAPORAN</span>
+                    <span class="short-text" style="display:none;">LP</span>
+                </div>
+
+                <a href="{{ route('admin.kelompok.laporan.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.kelompok.laporan.*') ? 'active' : '' }}"
+                    data-name="Transaksi" title="Transaksi">
+                    <i class="bi bi-wallet"></i><span class="menu-text">Laporan </span>
+                </a>
             </div>
         </div>
+
         {{-- @yield('sidebar') --}}
         <div class="navbar">
             <div class="navbar-brand">
-                <i class="eg-apps navbar-toggle-btn" id="toggleNavbar"></i>
+                <i class="bi bi-grid navbar-toggle-btn" id="toggleNavbar"></i>
             </div>
             <div class="navbar-title">@yield('page-title') <i class="@yield('icon-page-title')"></i></div>
         </div>
@@ -1135,6 +1250,33 @@
 
     {{-- <script src="https://egifn.github.io/got-style/dashboard.js"></script>   --}}
     <script>
+        // Sidebar menu-header text toggle
+        function updateMenuHeaderText() {
+            const sidebar = document.querySelector('.sidebar');
+            const menuHeaders = document.querySelectorAll('.menu-header');
+            menuHeaders.forEach(header => {
+                const fullText = header.querySelector('.full-text');
+                const shortText = header.querySelector('.short-text');
+                if (sidebar.classList.contains('collapsed')) {
+                    if (fullText) fullText.style.display = 'none';
+                    if (shortText) shortText.style.display = 'inline';
+                } else {
+                    if (fullText) fullText.style.display = 'inline';
+                    if (shortText) shortText.style.display = 'none';
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            updateMenuHeaderText();
+            const toggleBtn = document.getElementById('toggleSidebar');
+            const navbartoggleBtn = document.getElementById('toggleNavbar');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', updateMenuHeaderText);
+            }
+            if (navbartoggleBtn) {
+                navbartoggleBtn.addEventListener('click', updateMenuHeaderText);
+            }
+        });
         const toggleBtn = document.getElementById('toggleSidebar');
         const navbartoggleBtn = document.getElementById('toggleNavbar');
         const sidebar = document.querySelector('.sidebar');
@@ -1146,30 +1288,40 @@
         const dropdownIcon = document.getElementById('dropdownIcon');
         const dropdownContent = document.getElementById('dropdownContent');
 
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            sidebarHeader.classList.toggle('collapsed');
-            sidebarToggle.classList.toggle('collapsed');
-            navbarToggle.classList.toggle('collapsed');
-            navbarToggle.classList.toggle('expanded');
-            mainContent.classList.toggle('expanded');
-            navbar.classList.toggle('expanded');
-        });
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+                sidebarHeader.classList.toggle('collapsed');
+                sidebarToggle.classList.toggle('collapsed');
+                navbarToggle.classList.toggle('collapsed');
+                navbarToggle.classList.toggle('expanded');
+                mainContent.classList.toggle('expanded');
+                navbar.classList.toggle('expanded');
+            });
+        }
 
-        navbartoggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            sidebarHeader.classList.toggle('collapsed');
-            sidebarToggle.classList.toggle('collapsed');
-            navbarToggle.classList.toggle('collapsed');
-            navbarToggle.classList.toggle('expanded');
-            mainContent.classList.toggle('expanded');
-            navbar.classList.toggle('expanded');
-        });
+        if (navbartoggleBtn) {
+            navbartoggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+                sidebarHeader.classList.toggle('collapsed');
+                sidebarToggle.classList.toggle('collapsed');
+                navbarToggle.classList.toggle('collapsed');
+                navbarToggle.classList.toggle('expanded');
+                mainContent.classList.toggle('expanded');
+                navbar.classList.toggle('expanded');
+            });
+        }
 
         // Add a click event to toggle the dropdown
-        document.querySelector('.dropbtn').addEventListener('click', function() {
-            document.querySelector('.dropdown-content').classList.toggle('show');
-        });
+        const dropbtn = document.querySelector('.dropbtn');
+        if (dropbtn) {
+            dropbtn.addEventListener('click', function() {
+                const dropdownContent = document.querySelector('.dropdown-content');
+                if (dropdownContent) {
+                    dropdownContent.classList.toggle('show');
+                }
+            });
+        }
 
         // Close the dropdown if the user clicks outside of it
         window.onclick = function(event) {

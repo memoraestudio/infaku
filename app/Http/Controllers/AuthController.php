@@ -3,12 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -19,48 +17,63 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        // Validasi input
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'password' => 'required|string|min:6'
-        ], [
-            'email.exists' => 'Email tidak terdaftar.',
-            'password.min' => 'Password minimal 6 karakter.'
         ]);
 
-        // Ambil user dari database
-        $user = DB::table('users')->where('email', $request->email)->first();
+        // Debug: Cek apakah user ada
+        $user = DB::table('users')
+            ->where('email', $request->email)
+            ->join('jamaah', 'users.jamaah_id', '=', 'jamaah.id')
+            ->join('master_kelompok', 'jamaah.kelompok_id', '=', 'master_kelompok.id')
+            ->select(
+                'users.*',
+                'jamaah.id as jamaah_id',
+                'jamaah.nama_lengkap',
+                'jamaah.kelompok_id',
+                'master_kelompok.nama_kelompok'
+            )
+            ->first();
+        // dd($user);
 
-        // Cek apakah user ditemukan dan password cocok
         if (!$user) {
             return back()->withErrors(['email' => 'Email tidak ditemukan.']);
         }
 
+        // Debug: Cek password
         if (!Hash::check($request->password, $user->password)) {
             return back()->withErrors(['password' => 'Password salah.']);
         }
 
-        // Simpan user ke session
-        session(['user' => $user]);
-
-        // Redirect berdasarkan role — gunakan map agar mudah dikelola
-        $redirectMap = [
-            'ku-01'      => '/admin/dashboard',
-            'cashier'    => '/cashier',
-            'confirmator' => '/confirmator',
-            'member'     => '/member',
+        // Manual login karena struktur database mungkin berbeda
+        $userData = [
+            'user_id' => $user->jamaah_id,
+            'username' => $user->username,
+            'email' => $user->email,
+            'nama_lengkap' => $user->nama_lengkap,
+            'role_id' => $user->role_id,
+            'nama_kelompok' => $user->nama_kelompok,
+            'wilayah_id' => $user->kelompok_id,
+            'jamaah_id' => $user->jamaah_id
         ];
 
-        $role = $user->role ?? null;
+        session(['user' => $userData]);
 
-        if ($role && array_key_exists($role, $redirectMap)) {
-            return redirect()->to($redirectMap[$role]);
+        // Redirect berdasarkan role
+        $redirectMap = [
+            'RL001' => 'admin.dashboard', // Pusat
+            'RL002' => 'admin.dashboard', // Daerah  
+            'RL003' => 'admin.dashboard', // Desa
+            'RL004' => 'admin.kelompok.dashboard', // Kelompok
+            'RL005' => 'ruyah.dashboard', // Ruyah
+        ];
+
+        if (array_key_exists($user->role_id, $redirectMap)) {
+            return redirect()->route($redirectMap[$user->role_id]);
         }
 
-        // Log role tidak dikenali dan kembali ke login dengan error
-        Log::warning('Login attempt with unknown role', ['email' => $user->email ?? null, 'role' => $role]);
-
-        return redirect('/login')->withErrors(['access' => 'Role tidak dikenali.']);
+        return redirect('/dashboard');
     }
 
     public function showRegister()
@@ -71,30 +84,41 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name' => 'required',
+            'nama_lengkap' => 'required',
             'email' => 'required|email|unique:users',
-            'password' => 'required|confirmed',
-            'phone' => 'required'
+            'password' => 'required|confirmed|min:6',
+            'telepon' => 'required'
         ]);
 
+        // Generate username dari nama
+        $username = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $request->nama_lengkap));
+
+        // Cek jika username sudah ada
+        $existingUser = DB::table('users')->where('username', $username)->first();
+        if ($existingUser) {
+            $username = $username . rand(100, 999);
+        }
+
         DB::table('users')->insert([
-            'name' => $request->name,
+            'username' => $username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'phone' => $request->phone,
-            'role' => 'member',
+            'nama_lengkap' => $request->nama_lengkap,
+            'telepon' => $request->telepon,
+            'role_id' => 'RL005', // Default role Ruyah
+            'is_aktif' => true,
             'created_at' => now(),
             'updated_at' => now()
         ]);
 
-        return redirect('/login')->with('success', 'Registration successful!');
+        return redirect('/login')->with('success', 'Registrasi berhasil! Silakan login.');
     }
 
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
+        $request->session()->forget('user');
         $request->session()->regenerateToken();
+
         return redirect('/login');
     }
 }

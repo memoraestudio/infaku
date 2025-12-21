@@ -304,13 +304,18 @@
             <p>Amal Sholih Masuk Dulu</p>
         </div>
 
+        {{-- @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul>
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif --}}
+
         <div class="login-body">
-            <!--
-                Perbaikan route:
-                - gunakan url('/login') untuk memastikan POST dikirim ke endpoint /login
-                - link register diarahkan ke /register via url('/register')
-            -->
-            <form action="{{ url('/login') }}" method="POST" novalidate>
+            <form method="POST" action="{{ route('login') }}">
                 @csrf
                 <div class="form-group">
                     <label for="email">Email</label>

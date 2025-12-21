@@ -62,7 +62,7 @@ CREATE TABLE `jamaah` (
 
 CREATE TABLE `kategori_pembayaran` (
   `kategori_id` varchar(3) NOT NULL,
-  `nama_kategori` varchar(50) NOT NULL,
+  `nama_kontribusi` varchar(50) NOT NULL,
   `tipe_hitung` varchar(10) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

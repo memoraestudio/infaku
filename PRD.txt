@@ -1,0 +1,20 @@
+PRD
+Menu Admin Kelompok:
+Dashboard - Summary kelompok
+Master Data         :
+    Data Keluarga (CRUD)
+    Data Jamaah (Data Jiwa)
+Management Keuangan :
+    Master Kontribusi (CRUD jenis level kelompok)
+    Input Pembayaran
+    Riwayat Transaksi
+Aset                : (uang, barang)
+Buku Kas Umum       :
+    Pemasukan   
+    Pengeluaran
+Laporan             :
+    Laporan Kelompok
+    Detail per Keluarga/Ru'yah
+    Export Data
+
+
