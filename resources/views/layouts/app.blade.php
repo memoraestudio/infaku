@@ -44,7 +44,7 @@
                     </button>
                 </form>
                 <div class="header-right">
-                    <h5>{{ session('user.username') }}</h5>
+                    <p style="font-size : 11px">{{ session('user.username') }}</p>
                     <div class="profile">
                         <div class="profile-img-wrapper">
                             <div class="dropdown hover-dropdown">
@@ -52,7 +52,7 @@
                                     height="20">
                                 <div class="dropdown-content">
                                     <div style="padding: 8px 16px; font-weight: 600; color: #333;">
-                                        {{ session('user.username')  ?? '-' }}
+                                        {{ session('user.username') ?? '-' }}
                                     </div>
                                     <a href="#">
                                         <i class="bi bi-person"></i>Profil
@@ -209,7 +209,6 @@
                 @hasSection('navbar-actions')
                     @yield('navbar-actions')
                 @else
-
                 @endif
             </div>
         </div>

@@ -38,12 +38,12 @@ class JamaahController extends Controller
     public function print(Request $request)
     {
         $user = $request->session()->get('user');
-        $kelompokId = $user['id'];
+        $kelompokId = $user['wilayah_id'];
 
         $jamaahs = DB::table('jamaah')
             ->leftJoin('keluarga', 'jamaah.jamaah_id', '=', 'keluarga.kepala_keluarga_id')
             ->leftJoin('master_dapuan', 'jamaah.dapuan_id', '=', 'master_dapuan.id')
-            ->where('jamaah.id', $kelompokId)
+            // ->where('jamaah.id', $kelompokId)
             ->select(
                 'jamaah.*',
                 'keluarga.nama_keluarga',
@@ -85,7 +85,7 @@ class JamaahController extends Controller
             // Build query
             $query = DB::table('jamaah')
                 ->leftJoin('keluarga', 'jamaah.jamaah_id', '=', 'keluarga.kepala_keluarga_id')
-                ->Join('master_dapuan', 'jamaah.dapuan_id', '=', 'master_dapuan.id')
+                ->Join('roles', 'jamaah.dapuan_id', '=', 'roles.role_id')
                 ->where('jamaah.kelompok_id', $kelompokId);
 
             // Apply search
@@ -95,7 +95,7 @@ class JamaahController extends Controller
                         ->orWhere('jamaah.telepon', 'like', "%{$search}%")
                         ->orWhere('jamaah.alamat', 'like', "%{$search}%")
                         ->orWhere('keluarga.nama_keluarga', 'like', "%{$search}%")
-                        ->orWhere('master_dapuan.nama_dapuan', 'like', "%{$search}%");
+                        ->orWhere('roles.nama_role', 'like', "%{$search}%");
                 });
             }
 
@@ -111,7 +111,7 @@ class JamaahController extends Controller
             $data = $query->select(
                 'jamaah.*',
                 'keluarga.nama_keluarga',
-                'master_dapuan.nama_dapuan'
+                'roles.nama_role'
             )
                 ->orderBy('jamaah.nama_lengkap', 'asc')
                 ->offset(($page - 1) * $perPage)
@@ -142,15 +142,15 @@ class JamaahController extends Controller
         try {
             $jamaah = DB::table('jamaah')
                 ->leftJoin('keluarga', 'jamaah.id', '=', 'keluarga.kepala_keluarga_id')
-                ->join('master_dapuan', 'jamaah.dapuan_id', '=', 'master_dapuan.id')
+                ->join('roles', 'jamaah.dapuan_id', '=', 'roles.role_id')
                 ->where('jamaah.jamaah_id', $id)
                 ->join('users', 'jamaah.id', '=', 'users.jamaah_id')
                 ->select(
                     'jamaah.*',
                     'users.email',
                     'keluarga.nama_keluarga',
-                    'master_dapuan.nama_dapuan',
-                    'master_dapuan.id as dapuan_id'
+                    'roles.nama_role',
+                    'roles.role_id as dapuan_id'
                 )
                 ->first();
 
@@ -163,7 +163,7 @@ class JamaahController extends Controller
 
             // Format response data
             $data = $this->formatJamaahResponse($jamaah);
-
+            // dd($data);
             return response()->json([
                 'success' => true,
                 'data' => $data
@@ -191,11 +191,10 @@ class JamaahController extends Controller
                 'jenis_kelamin' => 'required|in:L,P',
                 'alamat' => 'nullable|string',
                 'telepon' => 'nullable|string|max:15',
-                'email' => 'nullable|email|max:100',
                 'pekerjaan' => 'nullable|string|max:100',
-                'status_menikah' => 'required|in:BELUM_MENIKAH,MENIKAH,JANDA,DUDA',
+                'status_menikah' => 'required|in:Belum Menikah,Menikah,Janda,Duda',
                 'golongan_darah' => 'nullable|in:A,B,AB,O,-',
-                'dapuan_id' => 'required|exists:master_dapuan,dapuan_id',
+                'dapuan_id' => 'required',
                 'is_aktif' => 'required|boolean'
             ]);
 
@@ -208,31 +207,155 @@ class JamaahController extends Controller
             }
 
             $user = $request->session()->get('user');
-            $kelompokId = $user['id'];
+            $kelompokId = $user['wilayah_id'];
 
             // Generate jamaah ID
             $jamaahId = $this->generateJamaahId($kelompokId);
+            // Mulai transaction
+            DB::beginTransaction();
 
-            // Prepare data
-            $data = $request->all();
-            $data['jamaah_id'] = $jamaahId;
-            $data['kelompok_id'] = $kelompokId;
-            $data['created_at'] = now();
+            try {
+                // 1. Insert ke tabel jamaah menggunakan Query Builder
+                $jamaahData = [
+                    'nama_lengkap' => $request->input('nama_lengkap'),
+                    'tempat_lahir' => $request->input('tempat_lahir'),
+                    'tanggal_lahir' => $request->input('tanggal_lahir'),
+                    'jenis_kelamin' => $request->input('jenis_kelamin'),
+                    'golongan_darah' => $request->input('golongan_darah'),
+                    'status_menikah' => $request->input('status_menikah'),
+                    'pekerjaan' => $request->input('pekerjaan'),
+                    'telepon' => $request->input('telepon'),
+                    'alamat' => $request->input('alamat'),
+                    'dapuan_id' => $request->input('dapuan_id'),
+                    'is_aktif' => $request->input('is_aktif', true),
+                    'jamaah_id' => $jamaahId,
+                    'kelompok_id' => $kelompokId,
+                    'created_at' => DB::raw('NOW()')
+                ];
 
-            // Insert data
-            DB::table('jamaah')->insert($data);
+                DB::table('jamaah')->insert($jamaahData);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Data jamaah berhasil ditambahkan'
-            ]);
+                // 2. Generate username dan email
+                $username = $this->generateUsername($request->input('nama_lengkap'));
+                $email = $this->generateEmail($request->input('nama_lengkap'));
+
+                // Cek duplikasi username/email
+                $counter = 1;
+                $originalUsername = $username;
+                $originalEmail = $email;
+
+                // Query Builder untuk cek duplikasi
+                while (
+                    DB::table('users')->where('username', $username)->exists() ||
+                    DB::table('users')->where('email', $email)->exists()
+                ) {
+                    $username = $originalUsername . $counter;
+                    $email = str_replace('@infaku.com', $counter . '@infaku.com', $originalEmail);
+                    $counter++;
+                }
+
+                // 3. Insert ke tabel users menggunakan Query Builder
+                $userData = [
+                    'username' => $username,
+                    'email' => $email,
+                    'password' => bcrypt('rajagaluh123'),
+                    'role_id' => 3,
+                    'jamaah_id' => $jamaahId, // Menggunakan jamaah_id (RJGL187)
+                    'is_aktif' => $request->input('is_aktif', true),
+                    'last_login' => null,
+                    'created_at' => DB::raw('NOW()'),
+                    'updated_at' => DB::raw('NOW()')
+                ];
+
+                DB::table('users')->insert($userData);
+
+                // Commit transaction
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data jamaah berhasil ditambahkan',
+                    'data' => [
+                        'jamaah_id' => $jamaahId,
+                        'username' => $username,
+                        'email' => $email,
+                        'password_default' => 'rajagaluh123'
+                    ]
+                ]);
+            } catch (\Exception $e) {
+                // Rollback jika ada error
+                DB::rollBack();
+                throw $e;
+            }
         } catch (\Exception $e) {
-            Log::error('Error storing jamaah: ' . $e->getMessage());
+            // Log error dengan Query Builder style
+            Log::error('Error Menambah jamaah: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menambahkan data jamaah'
+                'message' => 'Gagal menambah data jamaah'
+            ], 500);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menambahkan data jamaah',
+                'error' => env('APP_DEBUG') ? $e->getMessage() : 'Terjadi kesalahan internal'
             ], 500);
         }
+    }
+
+    /**
+     * Generate username dari nama lengkap menggunakan Query Builder style
+     */
+    private function generateUsername($namaLengkap)
+    {
+        $namaArray = explode(' ', trim($namaLengkap));
+        $namaDepan = strtolower($namaArray[0]);
+
+        if (count($namaArray) > 1) {
+            $namaBelakang = strtolower($namaArray[count($namaArray) - 1]);
+            $username = $namaDepan . $namaBelakang;
+        } else {
+            $username = $namaDepan;
+        }
+
+        // Hapus karakter non-alphanumeric
+        $username = preg_replace('/[^a-z0-9]/', '', $username);
+
+        return $username;
+    }
+
+    /**
+     * Generate email dari nama lengkap
+     */
+    private function generateEmail($namaLengkap)
+    {
+        $username = $this->generateUsername($namaLengkap);
+        return $username . '@infaku.com';
+    }
+
+    /**
+     * Generate jamaah ID menggunakan Query Builder
+     */
+    private function generateJamaahId($kelompokId)
+    {
+        $prefix = 'RJL';
+
+        // Cek nomor urut terakhir (tidak peduli kelompok_id, karena formatnya RJL001, RJL002, dst)
+        $lastJamaah = DB::table('jamaah')
+            ->where('jamaah_id', 'LIKE', $prefix . '%')
+            ->orderByRaw('CAST(SUBSTRING(jamaah_id, 4) AS UNSIGNED) DESC')
+            ->first();
+
+        if ($lastJamaah && !empty($lastJamaah->jamaah_id)) {
+            // Ambil angka setelah prefix "RJL"
+            $lastId = $lastJamaah->jamaah_id;
+            $lastNumber = (int) substr($lastId, 3); // Ambil setelah 3 karakter "RJL"
+            $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        } else {
+            $newNumber = '001';
+        }
+
+        return $prefix . $newNumber; // Contoh: RJL001, RJL002, RJL003, dst.
     }
 
     /**
@@ -251,7 +374,7 @@ class JamaahController extends Controller
                 'telepon' => 'nullable|string|max:15',
                 'email' => 'nullable|email|max:100',
                 'pekerjaan' => 'nullable|string|max:100',
-                'status_menikah' => 'required|in:BELUM_MENIKAH,MENIKAH,JANDA,DUDA',
+                'status_menikah' => 'required|in:Belum Menikah,Menikah,Janda,Duda',
                 'golongan_darah' => 'nullable|in:A,B,AB,O,-',
                 'dapuan_id' => 'nullable|exists:master_dapuan,dapuan_id',
                 'is_aktif' => 'required|boolean'
@@ -350,9 +473,9 @@ class JamaahController extends Controller
     public function getDapuanOptions(Request $request)
     {
         try {
-            $dapuans = DB::table('master_dapuan')
-                ->select('id', 'nama_dapuan')
-                ->orderBy('kode_dapuan')
+            $dapuans = DB::table('roles')
+                ->select('role_id', 'nama_role', 'level')
+                ->orderBy('role_id')
                 ->get();
 
             return response()->json([
@@ -409,7 +532,6 @@ class JamaahController extends Controller
         $tanggal_lahir = ($jamaah->tanggal_lahir && $jamaah->tanggal_lahir !== '0000-01-01')
             ? date('Y-m-d', strtotime($jamaah->tanggal_lahir))
             : null;
-
         return [
             'id' => $jamaah->id,
             'jamaah_id' => $jamaah->jamaah_id,
@@ -425,7 +547,7 @@ class JamaahController extends Controller
             'status_menikah' => $jamaah->status_menikah,
             'golongan_darah' => $jamaah->golongan_darah,
             'dapuan_id' => isset($jamaah->dapuan_id) ? (string)$jamaah->dapuan_id : null,
-            'nama_dapuan' => $jamaah->nama_dapuan,
+            'nama_dapuan' => $jamaah->nama_role,
             'nama_keluarga' => $jamaah->nama_keluarga,
             'is_aktif' => (bool)$jamaah->is_aktif,
             'created_at' => $jamaah->created_at,
@@ -433,28 +555,6 @@ class JamaahController extends Controller
             'kelompok_id' => $jamaah->kelompok_id,
             'foto_profil' => $jamaah->foto_profil,
         ];
-    }
-
-    /**
-     * Generate unique jamaah ID
-     */
-    private function generateJamaahId($kelompokId)
-    {
-        // Get kelompok info
-        $kodeKelompok = DB::table('master_kelompok')
-            ->where('kelompok_id', $kelompokId)
-            ->value('nama_kelompok');
-
-        $kodeKelompok = $this->generateKodeKelompok($kodeKelompok);
-
-        // Get last jamaah number
-        $lastJamaah = DB::table('jamaah')
-            ->where('kelompok_id', $kelompokId)
-            ->count();
-
-        $nextNumber = $lastJamaah + 1;
-
-        return $kodeKelompok . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }
 
     /**
