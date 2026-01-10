@@ -104,7 +104,7 @@ class KeluargaController extends Controller
 
             // Get paginated data
             $data = $query->select('keluarga.*', 'jamaah.nama_lengkap as kepala_keluarga_nama')
-                ->orderBy('keluarga.id', 'asc')
+                ->orderBy('keluarga.created_at', 'desc')
                 ->offset($offset)
                 ->limit($perPage)
                 ->get();
@@ -178,7 +178,7 @@ class KeluargaController extends Controller
 
     public function getJamaahFam(Request $request)
     {
-        // dd($request->all());
+        dd($request->all());
         try {
             $user = $request->session()->get('user');
             $kelompokId = $user['wilayah_id'];
@@ -188,7 +188,9 @@ class KeluargaController extends Controller
                 ->leftJoin('keluarga', 'jamaah.jamaah_id', '=', 'keluarga.kepala_keluarga_id')
                 ->leftJoin('anggota_keluarga', 'jamaah.jamaah_id', '=', 'anggota_keluarga.jamaah_id')
                 ->where('jamaah.kelompok_id', $kelompokId)
-                ->where('jamaah.is_aktif', true);
+                ->where('jamaah.is_aktif', true)
+                ->whereNull('keluarga.kepala_keluarga_id')
+                ->whereNull('anggota_keluarga.jamaah_id');
 
             if (!empty($search)) {
                 $query->where(function ($q) use ($search) {
@@ -235,8 +237,7 @@ class KeluargaController extends Controller
                 ->join('jamaah', 'anggota_keluarga.jamaah_id', '=', 'jamaah.jamaah_id')
                 ->where('anggota_keluarga.keluarga_id', $id)
                 ->where('anggota_keluarga.jamaah_id', '!=', $keluarga->kepala_keluarga_id)
-                ->select('jamaah.nama_lengkap', 'anggota_keluarga.status_hubungan', 'anggota_keluarga.urutan')
-                ->orderBy('anggota_keluarga.urutan', 'asc')
+                ->select('jamaah.nama_lengkap', 'anggota_keluarga.status_hubungan')
                 ->get();
 
             $keluarga->anggota = $anggota;
@@ -346,7 +347,6 @@ class KeluargaController extends Controller
 
     public function insertAnggotaKeluarga(Request $request)
     {
-        // dd($request->all());
         try {
             // Validate request
             $validator = Validator::make($request->all(), [
@@ -372,7 +372,7 @@ class KeluargaController extends Controller
                 DB::table('anggota_keluarga')->insert([
                     'keluarga_id' => $request->keluarga_id,
                     'jamaah_id' => $request->jamaah_id,
-                    'status_hubungan' => $request->status_hubungan,
+                    'status_hubungan' => strtoupper($request->status_hubungan),
                     'urutan' => $request->urutan,
                     'created_at' => DB::raw('NOW()'),
                 ]);

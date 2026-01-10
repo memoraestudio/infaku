@@ -25,7 +25,7 @@ class AuthController extends Controller
         // Debug: Cek apakah user ada
         $user = DB::table('users')
             ->where('email', $request->email)
-            ->join('jamaah', 'users.jamaah_id', '=', 'jamaah.id')
+            ->join('jamaah', 'users.jamaah_id', '=', 'jamaah.jamaah_id')
             ->join('master_kelompok', 'jamaah.kelompok_id', '=', 'master_kelompok.id')
             ->select(
                 'users.*',

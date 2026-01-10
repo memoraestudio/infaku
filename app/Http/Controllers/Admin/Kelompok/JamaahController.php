@@ -143,8 +143,8 @@ class JamaahController extends Controller
             $jamaah = DB::table('jamaah')
                 ->leftJoin('keluarga', 'jamaah.id', '=', 'keluarga.kepala_keluarga_id')
                 ->join('roles', 'jamaah.dapuan_id', '=', 'roles.role_id')
-                ->where('jamaah.jamaah_id', $id)
-                ->join('users', 'jamaah.id', '=', 'users.jamaah_id')
+                ->where('jamaah.id', $id)
+                ->join('users', 'jamaah.jamaah_id', '=', 'users.jamaah_id')
                 ->select(
                     'jamaah.*',
                     'users.email',
@@ -163,7 +163,7 @@ class JamaahController extends Controller
 
             // Format response data
             $data = $this->formatJamaahResponse($jamaah);
-            // dd($data);
+
             return response()->json([
                 'success' => true,
                 'data' => $data
@@ -258,8 +258,8 @@ class JamaahController extends Controller
                 $userData = [
                     'username' => $username,
                     'email' => $email,
-                    'password' => bcrypt('rajagaluh123'),
-                    'role_id' => 3,
+                    'password' => bcrypt('12345'),
+                    'role_id' => $request->input('dapuan_id'),
                     'jamaah_id' => $jamaahId, // Menggunakan jamaah_id (RJGL187)
                     'is_aktif' => $request->input('is_aktif', true),
                     'last_login' => null,
@@ -363,6 +363,8 @@ class JamaahController extends Controller
      */
     public function update(Request $request, $id)
     {
+        DB::beginTransaction();
+
         try {
             // Validate request
             $validator = Validator::make($request->all(), [
@@ -376,7 +378,7 @@ class JamaahController extends Controller
                 'pekerjaan' => 'nullable|string|max:100',
                 'status_menikah' => 'required|in:Belum Menikah,Menikah,Janda,Duda',
                 'golongan_darah' => 'nullable|in:A,B,AB,O,-',
-                'dapuan_id' => 'nullable|exists:master_dapuan,dapuan_id',
+                'dapuan_id' => 'nullable',
                 'is_aktif' => 'required|boolean'
             ]);
 
@@ -388,20 +390,86 @@ class JamaahController extends Controller
                 ], 422);
             }
 
-            // Prepare update data
-            $data = $request->all();
-            $data['updated_at'] = now();
+            // 1. Ambil data jamaah saat ini
+            $currentJamaah = DB::table('jamaah')
+                ->where('id', $id)
+                ->first(['jamaah_id', 'nama_lengkap']);
 
-            // Update data
+            if (!$currentJamaah) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data jamaah tidak ditemukan'
+                ], 404);
+            }
+
+            $jamaahId = $currentJamaah->jamaah_id;
+            $oldNamaLengkap = $currentJamaah->nama_lengkap;
+            $newNamaLengkap = $request->input('nama_lengkap');
+
+            // 2. Update data jamaah
+            $jamaahUpdateData = [
+                'nama_lengkap' => $newNamaLengkap,
+                'tempat_lahir' => $request->input('tempat_lahir'),
+                'tanggal_lahir' => $request->input('tanggal_lahir'),
+                'jenis_kelamin' => $request->input('jenis_kelamin'),
+                'alamat' => $request->input('alamat'),
+                'telepon' => $request->input('telepon'),
+                'pekerjaan' => $request->input('pekerjaan'),
+                'status_menikah' => $request->input('status_menikah'),
+                'golongan_darah' => $request->input('golongan_darah'),
+                'dapuan_id' => $request->input('dapuan_id'),
+                'is_aktif' => $request->input('is_aktif') ? 1 : 0,
+                'updated_at' => now()
+            ];
+
             DB::table('jamaah')
                 ->where('id', $id)
-                ->update($data);
+                ->update($jamaahUpdateData);
+
+            // 3. Update user jika ada
+            $userExists = DB::table('users')
+                ->where('jamaah_id', $id)
+                ->exists();
+
+            if ($userExists) {
+                $userUpdateData = [
+                    'is_aktif' => $request->input('is_aktif') ? 1 : 0,
+                    'updated_at' => now()
+                ];
+
+                // Update email jika ada
+                if ($request->has('email') && $request->input('email')) {
+                    $userUpdateData['email'] = $request->input('email');
+                }
+
+                // Update username jika nama berubah
+                if ($newNamaLengkap !== $oldNamaLengkap) {
+                    $newUsername = $this->generateUsername($newNamaLengkap);
+
+                    // Cek duplikasi username
+                    $duplicateUsername = DB::table('users')
+                        ->where('username', $newUsername)
+                        ->where('jamaah_id', '!=', $jamaahId)
+                        ->exists();
+
+                    if (!$duplicateUsername) {
+                        $userUpdateData['username'] = $newUsername;
+                    }
+                }
+
+                DB::table('users')
+                    ->where('jamaah_id', $jamaahId)
+                    ->update($userUpdateData);
+            }
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Data jamaah berhasil diupdate'
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Error updating jamaah: ' . $e->getMessage());
             return response()->json([
                 'success' => false,

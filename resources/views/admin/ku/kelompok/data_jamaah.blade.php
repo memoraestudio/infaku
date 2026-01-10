@@ -438,10 +438,10 @@
                     }
                 </td>
                 <td>
-                    <button class="btn btn-edit btn-sm" onclick="showEditModal('${item.jamaah_id}')" title="Edit">
+                    <button class="btn btn-edit btn-sm" onclick="showEditModal('${item.id}')" title="Edit">
                         <i class="bi-pencil"></i>
                     </button>
-                    <button class="btn btn-primary btn-sm" onclick="showDetailModal('${item.jamaah_id}')" title="Detail">
+                    <button class="btn btn-primary btn-sm" onclick="showDetailModal('${item.id}')" title="Detail">
                         <i class="bi-eye"></i>
                     </button>
                 </td>
@@ -528,7 +528,7 @@
                     const jamaah = result.data;
 
                     // Isi form
-                    document.getElementById('editJamaahId').value = jamaah.jamaah_id;
+                    document.getElementById('editJamaahId').value = jamaah.id;
                     document.getElementById('editNamaLengkap').value = jamaah.nama_lengkap;
                     document.getElementById('editTempatLahir').value = jamaah.tempat_lahir || '';
 

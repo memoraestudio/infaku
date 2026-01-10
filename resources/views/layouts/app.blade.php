@@ -28,7 +28,6 @@
     <div class="container">
         <!-- Header Section -->
         <header class="header">
-
             <div class="search">
                 <div class="header-brand">
                     <div class="header-logo">
@@ -81,7 +80,7 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <span class="sidebar-logo">I</span>
-                <p style="color: #5b5656;margin-top: -5px;margin-left: 5px;font-size: 20px;">
+                <p class="sidebar-title">
                     <b>Infaqu</b>
                 </p>
                 <div class="sidebar-toggle">
@@ -170,46 +169,17 @@
                     <i class="bi bi-file-earmark-text"></i>
                     <span class="menu-text">Laporan</span>
                 </a>
-
-                <!-- Additional Menu Items with Submenus (Example) -->
-                @if(isset($hasSubmenu) && $hasSubmenu)
-                    <div class="menu-item has-submenu" data-submenu="submenu-extra">
-                        <i class="bi bi-gear"></i>
-                        <span class="menu-text">Pengaturan</span>
-                        <span class="dropdown-toggle">
-                            <i class="bi bi-chevron-right"></i>
-                        </span>
-                    </div>
-
-                    <div class="submenu" id="submenu-extra">
-                        <a href="#" class="menu-item">
-                            <i class="bi bi-person-circle"></i>
-                            <span class="menu-text">Pengguna</span>
-                        </a>
-                        <a href="#" class="menu-item">
-                            <i class="bi bi-shield-check"></i>
-                            <span class="menu-text">Hak Akses</span>
-                        </a>
-                    </div>
-                @endif
             </div>
         </div>
 
         <!-- Navbar Section -->
         <div class="navbar" id="navbar">
-            <div class="navbar-brand">
-                <i class="bi bi-grid navbar-toggle-btn" id="toggleNavbar"></i>
-            </div>
-            <div class="navbar-title">
-                @yield('page-title', 'Dashboard')
-                <i class="@yield('icon-page-title', 'bi bi-house')"></i>
-            </div>
-
-            <div class="navbar-actions">
-                @hasSection('navbar-actions')
-                    @yield('navbar-actions')
-                @else
-                @endif
+            <i class="bi bi-grid navbar-toggle-btn" id="toggleNavbar"></i>
+            <div class="navbar-left">
+                <div class="navbar-title">
+                    @yield('page-title', 'Dashboard')
+                    <i class="@yield('icon-page-title', 'bi bi-house')"></i>
+                </div>
             </div>
         </div>
 
@@ -225,19 +195,16 @@
             <!-- Flash Messages -->
             @if(session('success'))
                 <div class="toast-container">
-                    <div class="toast success show d-flex align-items-center justify-content-between gap-2 px-3 py-2 shadow rounded mb-2"
-                        id="successToast" style="min-width:280px;max-width:400px;">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="toast-icon text-success fs-4"><i class="bi bi-check-circle"></i></span>
-                            <div class="toast-content">
-                                <div class="toast-title fw-bold mb-1">Sukses</div>
-                                <div class="toast-message small">{{ session('success') }}</div>
+                    <div class="toast success show">
+                        <div class="toast-content">
+                            <i class="bi bi-check-circle toast-icon"></i>
+                            <div class="toast-message">
+                                <strong>Sukses!</strong> {{ session('success') }}
                             </div>
                         </div>
-                        <button type="button"
-                            class="btn btn-sm btn-light border-0 p-1 ms-2 toast-close d-flex align-items-center justify-content-center"
-                            aria-label="Close" onclick="this.closest('.toast').classList.remove('show')">
-                            <i class="bi bi-x fs-5"></i>
+                        <button type="button" class="toast-close"
+                            onclick="this.closest('.toast').classList.remove('show')">
+                            <i class="bi bi-x"></i>
                         </button>
                     </div>
                 </div>
@@ -245,19 +212,16 @@
 
             @if(session('error'))
                 <div class="toast-container">
-                    <div class="toast error show d-flex align-items-center justify-content-between gap-2 px-3 py-2 shadow rounded mb-2"
-                        id="errorToast" style="min-width:280px;max-width:400px;">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="toast-icon text-danger fs-4"><i class="bi bi-exclamation-circle"></i></span>
-                            <div class="toast-content">
-                                <div class="toast-title fw-bold mb-1">Error</div>
-                                <div class="toast-message small">{{ session('error') }}</div>
+                    <div class="toast error show">
+                        <div class="toast-content">
+                            <i class="bi bi-exclamation-circle toast-icon"></i>
+                            <div class="toast-message">
+                                <strong>Error!</strong> {{ session('error') }}
                             </div>
                         </div>
-                        <button type="button"
-                            class="btn btn-sm btn-light border-0 p-1 ms-2 toast-close d-flex align-items-center justify-content-center"
-                            aria-label="Close" onclick="this.closest('.toast').classList.remove('show')">
-                            <i class="bi bi-x fs-5"></i>
+                        <button type="button" class="toast-close"
+                            onclick="this.closest('.toast').classList.remove('show')">
+                            <i class="bi bi-x"></i>
                         </button>
                     </div>
                 </div>
@@ -281,10 +245,16 @@
 
     <!-- Inline JavaScript -->
     <script>
-        // CSRF Token setup for AJAX requests
         document.addEventListener('DOMContentLoaded', function () {
+            // Toast auto-hide 5 detik
+            setTimeout(() => {
+                document.querySelectorAll('.toast.show').forEach(toast => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                });
+            }, 5000);
 
-            // Set CSRF token for all fetch requests (tanpa jQuery)
+            // Set CSRF token for all fetch requests
             window.getCsrfToken = function () {
                 const meta = document.querySelector('meta[name="csrf-token"]');
                 return meta ? meta.getAttribute('content') : '';
@@ -312,80 +282,13 @@
                     }, 500);
                 });
             }
-
-            // Initialize sidebar state from localStorage
-            const sidebarState = localStorage.getItem('sidebarCollapsed');
-            if (sidebarState === 'true') {
-                document.getElementById('sidebar').classList.add('collapsed');
-                document.querySelector('.main-content').classList.add('expanded');
-                document.querySelector('.navbar').classList.add('expanded');
-                updateMenuHeaderText();
-            }
         });
 
-        // Global search function
-
-
-        // Show search results in dropdown
-        function showSearchResults(results) {
-            // Implementation for showing search results
-            console.log('Search results:', results);
+        function performSearch(query) {
+            // Implement search functionality here
+            console.log('Searching for:', query);
         }
 
-        // Update menu header text based on sidebar state
-        function updateMenuHeaderText() {
-            const sidebar = document.querySelector('.sidebar');
-            const menuHeaders = document.querySelectorAll('.menu-header');
-
-            menuHeaders.forEach(header => {
-                const fullText = header.querySelector('.full-text');
-                const shortText = header.querySelector('.short-text');
-
-                if (sidebar.classList.contains('collapsed')) {
-                    if (fullText) fullText.style.display = 'none';
-                    if (shortText) shortText.style.display = 'inline';
-                } else {
-                    if (fullText) fullText.style.display = 'inline';
-                    if (shortText) shortText.style.display = 'none';
-                }
-            });
-        }
-
-        // Export data function
-        function exportData(type, url) {
-            const exportUrl = `${url}?export=${type}&${new URLSearchParams(window.location.search).toString()}`;
-            window.open(exportUrl, '_blank');
-        }
-
-        // Show loading indicator
-        function showLoading() {
-            const loader = document.createElement('div');
-            loader.className = 'loading-overlay';
-            loader.innerHTML = `
-                <div class="loading-spinner">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    <span>Loading...</span>
-                </div>
-            `;
-            document.body.appendChild(loader);
-        }
-
-        // Hide loading indicator
-        function hideLoading() {
-            const loader = document.querySelector('.loading-overlay');
-            if (loader) {
-                loader.remove();
-            }
-        }
-
-        // Confirm dialog
-        function confirmAction(message, callback) {
-            if (confirm(message)) {
-                callback();
-            }
-        }
-
-        // Format currency
         function formatCurrency(amount) {
             return new Intl.NumberFormat('id-ID', {
                 style: 'currency',
@@ -394,7 +297,6 @@
             }).format(amount);
         }
 
-        // Format date
         function formatDate(dateString) {
             const date = new Date(dateString);
             return date.toLocaleDateString('id-ID', {
